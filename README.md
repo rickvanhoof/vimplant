@@ -12,7 +12,7 @@ Here we provide code for preprocessing of 7T retinotopic maps (obtained from the
 
 > conda install -c conda-forge jupyterlab
 
-> pip install numpy=1.23.5 scikit-optimize nibabel mathutils trimesh scipy matplotlib rtree
+> pip install numpy==1.23.5 scikit-optimize nibabel mathutils trimesh scipy matplotlib rtree
 
 
 FromAitor Astudillo from the SURFSARA helpdesk:  
