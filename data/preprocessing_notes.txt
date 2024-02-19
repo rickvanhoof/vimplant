@@ -1,0 +1,56 @@
+===============================================================================
+Analysis pipeline - data preprocessing for human electrode implant simulations
+===============================================================================
+# for each subject we have the maps aligned to the fsaverage surface 
+# (files available with description here: https://osf.io/bw9ec/)
+
+# folder structure
+# <HCP_subjects_dir>: e.g. /mnt/f/Data/NESTOR/freesurfer_data/subjects/HCP/ 
+# <retinotopy_dir>: e.g. /mnt/f/Data/NESTOR/freesurfer_data/retinotopy/
+#
+# -> list of pRF data files located in <retinotopy_dir>
+      lh.fit1_ang.mgz  
+      lh.fit1_ecc.mgz  
+      lh.fit1_rfsize.mgz
+      lh.fit1_R2.mgz 
+      rh.fit1_ang.mgz  
+      rh.fit1_ecc.mgz  
+      rh.fit1_rfsize.mgz
+      rh.fit1_R2.mgz
+	  
+
+# bring the empirical maps to the native surface
+# -> repeat command per hemisphere and map (freesurfer command)
+mri_surf2surf 	--srcsubject fsaverage \
+				--trgsubject <subject_id> \
+				--sval <retinotopy_dir>/<subject_id>/lh.fit1_rfsize.mgz \
+				--tval <retinotopy_dir>/<subject_id>/native.lh.fit1_rfsize.mgz \
+				--hemi <hem: lh or rh>
+
+# -> for each subject and map, bring empirical maps to native volume space
+docker run -ti --rm -v <HCP_subjects_dir>:/subjects \
+					-v <retinotopy_dir>:/retinotopy \
+					nben/neuropythy \
+					surface_to_image 	--verbose <subject_id> empirical_ang.mgz \
+										--lh /retinotopy/<subject_id>/native.lh.fit1_ang.mgz \
+										--rh /retinotopy/<subject_id>/native.rh.fit1_ang.mgz
+
+#merge the atlas data with empirical data, as the empirical data only covers up to 8 degrees eccentricity
+# repeat command for each subject
+docker run -ti --rm -v <HCP_subjects_dir>:/subjects \
+					-v <retinotopy_dir>:/retinotopy \
+					nben/neuropythy \
+					register_retinotopy \
+							--verbose \
+							--vol-outdir=<HCP_subjects_dir>/<subject_id>/retinotopy/ \
+							--surf-outdir=<HCP_subjects_dir>/<subject_id>/retinotopy/ \
+							--surf-format="mgz" \
+							--lh-angle=/retinotopy/<subject_id>/native.lh.fit1_ang.mgz \
+							--lh-eccen=/retinotopy/<subject_id>/native.lh.fit1_ecc.mgz \
+							--lh-radius=/retinotopy/<subject_id>/native.lh.fit1_rfsize.mgz \
+							--lh-weight=/retinotopy/<subject_id>/native.lh.fit1_R2.mgz \
+							--rh-angle=/retinotopy/<subject_id>/native.rh.fit1_ang.mgz \
+							--rh-eccen=/retinotopy/<subject_id>/native.rh.fit1_ecc.mgz \
+							--rh-radius=/retinotopy/<subject_id>/native.rh.fit1_rfsize.mgz \
+							--rh-weight=/retinotopy/<subject_id>/native.rh.fit1_R2.mgz \
+							<subject_id>
