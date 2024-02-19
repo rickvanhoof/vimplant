@@ -52,8 +52,6 @@ def get_yield(contacts_xyz, goodcoords, empty_score=1.0):
     
     Optimize for yield between the arrays and the gray tissue
     
-    TODO: check that the rounding/allclose its correct and we dont miss or count hits twice
-    
     goodcoords = all GM voxels which contain pRF data
     contacts_xyz = electrode grid for which we calc the yield
     
@@ -69,11 +67,7 @@ def get_yield(contacts_xyz, goodcoords, empty_score=1.0):
 
     contact_hits = len(indices_prf)
     total_points = contacts_xyz.shape[1]
-#     print('contact_hits', contact_hits)
-#     print('total_points', total_points)
-
     contacts_yield = (contact_hits / total_points)
-#     print('contacts_yield', contacts_yield)
 
     return contacts_yield
 

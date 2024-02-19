@@ -35,11 +35,10 @@ def pol2cart(theta, rho):
     return x, y
 
 def get_xyz(data, UNDERSAMPLING = 1):
-    
     '''
-    Antonio
-    
+    obtains separated vectors fro x,y,z with an option to undersample
     '''
+    
     
     if UNDERSAMPLING == 1:
         
@@ -60,7 +59,6 @@ def transform(points,
               ROTATION_ANGLE_X=0,ROTATION_ANGLE_Y=0,ROTATION_ANGLE_Z=0):
     
     '''
-    # Antonio
     # The input is a matrix like this:
     # (n_points, 3 + 1)
     #   [[x1, x2]
@@ -101,7 +99,7 @@ def transform(points,
 def create_cube(xBase, yBase, height, xmax, ymax, zmax):
     
     '''
-    Antonio
+    returns xyz coordinates of a cube volume defined by the input arguments
     '''
     
     mask_result = np.zeros((xmax,ymax,zmax))
@@ -130,7 +128,8 @@ def create_cube(xBase, yBase, height, xmax, ymax, zmax):
 def cube_from_points(x, y, z):
     
     '''
-    Antonio
+    returns the coordinates of the defined x, y, z in a (n_points,4) format, adding auxiliar ones vector
+    so the coordinates can be transformed later on using e.g. translation and rotation operations
     '''
 
     points = np.array([x,y,z]).T.astype('float32')
@@ -145,7 +144,7 @@ def cube_from_points(x, y, z):
 def recover_mask_from_points(points, target_shape):
     
     '''
-    Antonio
+    Creates a masked volume with ones (and zeros otherwise) from a set of x, y, z points
     '''
     
     new_mask = np.zeros(target_shape).astype(np.int16)
@@ -166,12 +165,24 @@ def get_polar_ecc_fromCube(cube, polar_map, ecc_map, R2_map, R2_THRESHOLD = 0,
                            maskValue = -99,
                            ANGLE_FORMAT = 'RADIANS'):   
     
-    '''
-    Antonio
-    cube = (4, number of points), with the xyz coordinates of the points 
-    the fourth row only has 1 (ones) and its not needed
 
-    TODO: explain function I/O
+    '''
+    Extracts polar angles and eccentricity values for points within a specified cube, applying a mask and R^2 threshold.
+
+    Parameters:
+    - cube (numpy.ndarray): A 4xN array where the first three rows represent the x, y, and z coordinates of N points in space. The fourth row is not used.
+    - polar_map (numpy.ndarray): A 3D array containing polar angle values for each voxel.
+    - ecc_map (numpy.ndarray): A 3D array containing eccentricity values for each voxel.
+    - R2_map (numpy.ndarray): A 3D array containing R^2 values for each voxel, used to apply a threshold filter.
+    - R2_THRESHOLD (float, optional): The minimum R^2 value required for a voxel to be considered valid. Defaults to 0.
+    - maskValue (int, optional): The value used in `polar_map` and `ecc_map` to indicate invalid or masked data. Defaults to -99.
+    - ANGLE_FORMAT (str, optional): The format of the returned polar angles, 'RADIANS' or 'DEGREES'. Defaults to 'RADIANS'.
+
+    Returns:
+    - pol_list (list of float): The list of polar angles for points passing the mask and R^2 threshold criteria.
+    - ecc_list (list of float): The list of eccentricity values for points passing the mask and R^2 threshold criteria.
+    
+    The function iterates through each point in the `cube`, rounds its coordinates to the nearest integer, and retrieves the corresponding polar angle, eccentricity, and R^2 values from the provided maps. Points are filtered based on the R^2 value and maskValue criteria. The polar angles are converted to the specified format (radians or degrees) as required.    
     '''
     
     ecc_list = []
@@ -201,9 +212,7 @@ def get_polar_ecc_fromCube(cube, polar_map, ecc_map, R2_map, R2_THRESHOLD = 0,
 
 
 def get_translation(cube_center, desired_center):
-    '''
-    Antonio
-    
+    '''    
     Returns TRANSLATION_X, TRANSLATION_Y, TRANSLATION_Z given 
     a desired cube center
     
@@ -214,7 +223,6 @@ def get_translation(cube_center, desired_center):
 def translate_cube(cube_center, desired_center, rotation_angles, points):
     
     '''
-    Antonio
     
     Inputs:
         cube_center (x,y,z)

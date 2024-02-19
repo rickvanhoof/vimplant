@@ -2,7 +2,7 @@
 """
 Created on Tue Jul 13 22:11:08 2021
 
-@author: Lozano
+@author: Lozano & van Hoof
 
 """
 
