@@ -21,7 +21,7 @@ import trimesh # needed for convex hull
 from lossfunc import makeGaussian
 
 ### needed for matrix rotation/translation ect
-from ninimplant import pol2cart, cart2pol,get_xyz,transform,create_cube,cube_from_points,recover_mask_from_points,get_polar_ecc_fromCube,get_translation,translate_cube # LOCATED IN NIN/SPIKE
+from ninimplant import pol2cart, cart2pol,get_xyz,transform,create_cube,cube_from_points,recover_mask_from_points,get_polar_ecc_fromCube,get_translation,translate_cube
 
 #################
 def normalized_uv(a, axis=-1, order=2):
@@ -52,11 +52,7 @@ def create_grid(desired_center, shank_length=12, n_contactpoints_shank=5, spacin
     allContactPointsList = []
     contacts_xyz = []
     
-    # dimensions v1/v2 80 x 100 x 60 mm
     BRAIN_ANGLE = 0 # angle of the brain with respect to the horizontal line
-    # relative angle electrode-brain
-    FENGS_ANGLE = 0  # angle of the array's shanks with respect to the brain
-
     # Creating vectors with the position of the contacts relative to the shank origin
     # This is one shank
     contacts_position_lenght_singleShank = np.linspace(offset_from_origin, shank_length , num = contacts_perShank)
@@ -91,10 +87,6 @@ def create_grid(desired_center, shank_length=12, n_contactpoints_shank=5, spacin
         shankList[i][:,0] += i * shank_spacing
 
     #########################################
-    # We also need to have in mind that each shank doesn't have its origin
-    # at the same horizontal level but in a line with a certain angle respect
-    # to the horizontal line (in this case, around 45 degrees *CHECK THIS)
-
     # In addition, we will add some OFFSET FROM ORIGIN
     comb_horizontal_angle = radians(BRAIN_ANGLE)
     tan = math.tan(comb_horizontal_angle)
@@ -109,16 +101,9 @@ def create_grid(desired_center, shank_length=12, n_contactpoints_shank=5, spacin
         shankOriginList.append(shankOrigin)
 
     ########################################
-    # Now, we will correct the X (horizontal) position of the contact points
-    # given the relative angle of the shanks to the brain, that we will convert to
-    # absolute angle to the Z (vertical) axis
-    # angle in Fengs Spike implant drawing
-    # (check 'Spike_Implant_Feng_IllustrationofProbesandCables-merged.pdf')
-    # relative angle electrode-brain
-
     # calculating absolute angle (electrode -z axis)
-    # ELECTRODE_ABS_ANGLE = 90 - BRAIN_ANGLE - FENGS_ANGLE
-    ELECTRODE_ABS_ANGLE = 0
+    # 0 for a straight cube
+    ELECTRODE_ABS_ANGLE = 0 
     radians_ELECTRODE_ABS_ANGLE = radians(ELECTRODE_ABS_ANGLE)
     tan = np.abs(math.tan(radians_ELECTRODE_ABS_ANGLE))
 
@@ -140,10 +125,7 @@ def create_grid(desired_center, shank_length=12, n_contactpoints_shank=5, spacin
             # absolute angle (electrode-z axis)
             shankList[sh][contact][0] = x_contact
 
-    # Now we have a comb of electrodes ready to translate and rotate
-    #ARREGLA en la siguiente linea num_shanks_perComb esta repetido, deberia ser contacts per shank
-    #comb = np.asarray(shankList).reshape(num_shanks_perComb * num_shanks_perComb, 3)
-    
+    # Now we have a comb of electrodes ready to translate and rotate   
     comb = np.asarray(shankList).reshape(num_shanks_perComb * contacts_perShank, 3)
 
     aux_ones = np.ones((comb.shape[0],1)).astype('float32')
@@ -155,30 +137,17 @@ def create_grid(desired_center, shank_length=12, n_contactpoints_shank=5, spacin
     combOrigin_center = np.mean(combOrigin,axis=1)
 
     ###############################
-#     x = good_coords[0][:]
-#     y = good_coords[1][:]
-#     z = good_coords[2][:]
-
-#     ecc_box = np.zeros((256,256,256))
-#     colors = np.zeros((len(x)))
-#     for a, b, c, i in zip(x, y, z, range(len(x))):
-#         ecc_box[a][b][c] = ecc_map[a][b][c]
-#         colors[i] = ecc_map[a][b][c]
-#     x = x.astype(float)
-#     y = y.astype(float)
-#     z = z.astype(float)
     
     # First, center our original comb at map center/desired location
     rotation_angles = (0,0,0)
     comb_center = np.mean(comb,axis=1)
     x_new_comb, y_new_comb, z_new_comb = translate_cube(comb_center,
-                                                        desired_center, #[150, 150, 60], #[0,0,0],
+                                                        desired_center, 
                                                         rotation_angles,
                                                         comb)
     comb = cube_from_points(x_new_comb, y_new_comb, z_new_comb)
     allContactPointsList.append(comb)
     contacts_xyz = np.asarray(comb)[0:3, :]
-#     print(np.mean(comb,axis=1))
 
     # Now, copy and translate comb
     for i in range(number_of_combs - 1):
@@ -197,8 +166,7 @@ def create_grid(desired_center, shank_length=12, n_contactpoints_shank=5, spacin
     med_x = np.asarray([desired_center[0], desired_center[0]])
     med_y = np.asarray([desired_center[1], desired_center[1]])
     med_z = np.asarray([desired_center[2], desired_center[2]])
-
-    # memory issues when repeated n times?
+    
     orig_grid = contacts_xyz
     
     return orig_grid
@@ -245,19 +213,11 @@ def reposition_grid(orig_grid, new_location=None, new_angle=None):
 #######################################
 #######################################
 def implant_grid(gm_mask, orig_grid, start_location, new_angle, offset_from_base):
-######
-#
-# determines the insertion point of the center of the electrode grid, based on angle and target point.
-#
-#####
+    '''
+    # determines the insertion point of the center of the electrode grid, based on angle and target point.
+    '''
     
     valid = False
-    
-    # show hemi parcellations for reference
-#     fig = ipv.figure(width=700, height=600)
-#     fig.scatters.clear()
-#     mrivol = ipv.volshow(np.transpose(aparc_roi), opacity=0.05)
-#     mrivol.rendering_method='MAX_INTENSITY'
 
     # start location
     ref_orig = np.array([start_location[0], start_location[1], start_location[2]]) # ref-line vector
@@ -313,10 +273,13 @@ def implant_grid(gm_mask, orig_grid, start_location, new_angle, offset_from_base
 #######################################
 #######################################
 def get_phosphenes(contacts_xyz, good_coords, polar_map, ecc_map, sigma_map):
+
+    '''
+    
+    creates a list of pRFs for the valid contact points
+    
+    '''
     n_contacts = contacts_xyz.shape[1]
-#
-# creates a list of pRFs for the valid contact points
-#
     # filter good coords
     b1 = np.round(np.transpose(np.array(contacts_xyz)))
     b2 = np.transpose(np.array(good_coords))
@@ -325,11 +288,9 @@ def get_phosphenes(contacts_xyz, good_coords, polar_map, ecc_map, sigma_map):
         tmp = np.where(np.array(b2 == b1[i,:]).all(axis=1))
         if tmp[0].shape[0] != 0:
             indices_prf.append(tmp[0][0])
-#         print('Number of functional electrodes: ', len(indices_prf))
 
     num_points = len(indices_prf)
-#     xList = []
-#     yList = []
+
     sList = []
     pList = []
     eList = []
@@ -338,14 +299,10 @@ def get_phosphenes(contacts_xyz, good_coords, polar_map, ecc_map, sigma_map):
         pol = polar_map[xp, yp, zp]
         ecc = ecc_map[xp, yp, zp]
         sigma = sigma_map[xp, yp, zp]
-#         x, y = pol2cart(pol, ecc)
-#         xList.append(x)
-#         yList.append(y)
+
         pList.append(pol)
         eList.append(ecc)
         sList.append(sigma)
-    # theta = 2 * np.pi * np.random.rand(num_points)
-    # colors = theta
 
     # normalize to range(0, 2*pi)
     eccentricities = np.asarray(eList)
@@ -436,59 +393,6 @@ def gen_dummy_phos(n_phos, view_angle):
 
 #######################################
 #######################################
-def prf_to_phos_v1(phospheneMap, phosphenes, max_eccentricity = 180, phSizeScale = 1):
-    '''
-        1- map phosphenes to visual scene -> depends on distance eyes/cam to plot
-        90deg eccentricity -> 90% of window size
-        
-        - phSizeScale = scaling phosphenes for easier visualization
-        
-    '''
-
-    #gaussianList = []
-    windowSize = phospheneMap.shape[1]    
-    scaledEcc =  windowSize / max_eccentricity   
-
-    # for i in range(total_phosphenes):
-    for i in range(0,phosphenes.shape[0]):
-        
-        s = int(phosphenes[i,2]) * phSizeScale
-        c_x, c_y = pol2cart(radians(phosphenes[i,0]) ,phosphenes[i,1])
-        #c_x, c_y = (phosphenes[i,0] ,phosphenes[i,1])
-
-        x = int(c_x * scaledEcc + windowSize/2)
-        y = int(c_y * scaledEcc + windowSize/2)
-        
-        if s < 2:
-            # print('Tiny phosphene: artificially making size == 2')
-            s = 2
-
-        elif (s % 2) != 0:
-            s =  s + 1
-        else:
-            None
-
-        halfs = s // 2        
-
-        g = makeGaussian_v1(size = s , fwhm = s / 3, center=None)
-        g /= g.max()      
-        g /= g.sum()
-        
-        g = np.expand_dims(g,-1)
-
-        try:
-            phospheneMap [y-halfs:y+halfs, x-halfs:x+halfs] = phospheneMap[y-halfs:y+halfs, x-halfs:x+halfs] + g
-        except:
-            None
-    
-    # rotate by 90 degrees to match orientation visual field
-    phospheneMap = np.rot90(phospheneMap, 1)
-        
-    return phospheneMap
-
-#######################################
-#######################################
-# Antonio's version, assuming that `phospheneMap is an empty square numpy array
 def prf_to_phos(phospheneMap, phosphenes, view_angle = 90, phSizeScale = 1):
     '''
             1- map phosphenes to visual scene -> depends on distance eyes/cam to plot
